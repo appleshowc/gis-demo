@@ -2,9 +2,9 @@ import Map from 'https://js.geoscene.cn/4.23/@geoscene/core/Map.js';
 import esriRequest from 'https://js.geoscene.cn/4.23/@geoscene/core/request.js';
 import MapView from 'https://js.geoscene.cn/4.23/@geoscene/core/views/MapView.js';
 import Point from 'https://js.geoscene.cn/4.23/@geoscene/core/geometry/Point.js';
-import WebTileLayer from "https://js.geoscene.cn/4.23/@geoscene/core/layers/WebTileLayer.js";
-import TileInfo from "https://js.geoscene.cn/4.23/@geoscene/core/layers/support/TileInfo.js";
-import FlowlineLayer from "./FlowlineLayer.js";
+import WebTileLayer from 'https://js.geoscene.cn/4.23/@geoscene/core/layers/WebTileLayer.js';
+import TileInfo from 'https://js.geoscene.cn/4.23/@geoscene/core/layers/support/TileInfo.js';
+import FlowlineLayer from './FlowlineLayer.js';
 
 // Now we can create the map, the view, load the data and finally
 // create an instance of the custom layer and add it to the map.
@@ -17,7 +17,7 @@ var tileInfo = new TileInfo({
   origin: {
     spatialReference: { latestWkid: 3857, wkid: 102100 },
     x: -20037508.342787,
-    y: 20037508.342787,
+    y: 20037508.342787
   },
   spatialReference: { latestWkid: 3857, wkid: 102100 },
   lods: [
@@ -42,26 +42,25 @@ var tileInfo = new TileInfo({
     { level: 18, resolution: 0.597164283559817, scale: 2256.994353 },
     { level: 19, resolution: 0.298582141647617, scale: 1128.497176 },
     { level: 20, resolution: 0.14929107082380833, scale: 564.248588 },
-    { level: 21, resolution: 0.07464553541190416, scale: 282.124294 },
+    { level: 21, resolution: 0.07464553541190416, scale: 282.124294 }
   ]
 });
 const tiandituVec = new WebTileLayer({
-  urlTemplate: 'http://{subDomain}.tianditu.gov.cn/vec_w/wmts?service=wmts&request=GetTile&version=1.0.0&layer=vec&tileMatrixSet=w&TileMatrix={level}&TileRow={row}&TileCol={col}&style=default&tk=67d83ca377e94348436f45b3c9a2662a',
-  subDomains: ["t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7"],
+  urlTemplate:
+    'http://{subDomain}.tianditu.gov.cn/vec_w/wmts?service=wmts&request=GetTile&version=1.0.0&layer=vec&tileMatrixSet=w&TileMatrix={level}&TileRow={row}&TileCol={col}&style=default&tk=67d83ca377e94348436f45b3c9a2662a',
+  subDomains: ['t0', 't1', 't2', 't3', 't4', 't5', 't6', 't7'],
   tileInfo
-})
+});
 const tiandituCva = new WebTileLayer({
-  urlTemplate:'http://{subDomain}.tianditu.gov.cn/cva_w/wmts?service=wmts&request=GetTile&version=1.0.0&layer=cva&tileMatrixSet=w&TileMatrix={level}&TileRow={row}&TileCol={col}&style=default&tk=67d83ca377e94348436f45b3c9a2662a',
-  subDomains: ["t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7"],
+  urlTemplate:
+    'http://{subDomain}.tianditu.gov.cn/cva_w/wmts?service=wmts&request=GetTile&version=1.0.0&layer=cva&tileMatrixSet=w&TileMatrix={level}&TileRow={row}&TileCol={col}&style=default&tk=67d83ca377e94348436f45b3c9a2662a',
+  subDomains: ['t0', 't1', 't2', 't3', 't4', 't5', 't6', 't7'],
   tileInfo
-})
+});
 
 const map = new Map({
   basemap: {
-    baseLayers: [
-      tiandituVec,
-      tiandituCva,
-    ]
+    baseLayers: [tiandituVec, tiandituCva]
   },
   spatialReference: {
     wkid: 3857
@@ -69,7 +68,7 @@ const map = new Map({
 });
 
 const point = new Point({
-  x: -74.0060,
+  x: -74.006,
   y: 40.7128,
   spatialReference: {
     wkid: 4326
@@ -79,13 +78,15 @@ const view = new MapView({
   container: 'viewDiv',
   map: map,
   center: point,
-  zoom: 15,
+  zoom: 15
 });
 
-
-esriRequest("https://arcgis.github.io/arcgis-samples-javascript/sample-data/custom-gl-animated-lines/lines.json", {
-  responseType: 'json'
-}).then((response) => {
+esriRequest(
+  'https://arcgis.github.io/arcgis-samples-javascript/sample-data/custom-gl-animated-lines/lines.json',
+  {
+    responseType: 'json'
+  }
+).then((response) => {
   const graphics = response.data.map((trip) => {
     return {
       attributes: {

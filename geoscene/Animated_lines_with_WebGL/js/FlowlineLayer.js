@@ -1,7 +1,7 @@
 import * as reactiveUtils from 'https://js.geoscene.cn/4.23/@geoscene/core/core/reactiveUtils.js';
 import GraphicsLayer from 'https://js.geoscene.cn/4.23/@geoscene/core/layers/GraphicsLayer.js';
 import BaseLayerViewGL2D from 'https://js.geoscene.cn/4.23/@geoscene/core/views/2d/layers/BaseLayerViewGL2D.js';
-import * as projection from "https://js.geoscene.cn/4.23/@geoscene/core/geometry/projection.js";
+import * as projection from 'https://js.geoscene.cn/4.23/@geoscene/core/geometry/projection.js';
 
 // Subclass the custom layer view from BaseLayerViewGL2D.
 const FlowlineLayerView2D = BaseLayerViewGL2D.createSubclass({
@@ -202,7 +202,7 @@ const FlowlineLayerView2D = BaseLayerViewGL2D.createSubclass({
 
   // 投影每个图形到当前视图坐标系
   updateGeometry() {
-    this.layer.graphics.forEach(g => {
+    this.layer.graphics.forEach((g) => {
       g.geometry = projection.project(g.geometry, this.view.spatialReference);
     });
   },
@@ -274,10 +274,10 @@ const FlowlineLayerView2D = BaseLayerViewGL2D.createSubclass({
     var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
     return result
       ? [
-          parseInt(result[1], 16),
-          parseInt(result[2], 16),
-          parseInt(result[3], 16)
-        ]
+        parseInt(result[1], 16),
+        parseInt(result[2], 16),
+        parseInt(result[3], 16)
+      ]
       : null;
   },
 
@@ -290,7 +290,11 @@ const FlowlineLayerView2D = BaseLayerViewGL2D.createSubclass({
     if (!this.needsUpdate) {
       // If we are not stationary we simply update the `translationToCenter` vector.
       if (!stationary) {
-        vec2.sub(this.translationToCenter, this.centerAtLastUpdate, state.center);
+        vec2.sub(
+          this.translationToCenter,
+          this.centerAtLastUpdate,
+          state.center
+        );
         this.requestRender();
         return;
       }
