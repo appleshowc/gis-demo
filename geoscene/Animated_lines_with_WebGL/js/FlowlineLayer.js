@@ -522,4 +522,77 @@ const FlowlineLayer = GraphicsLayer.createSubclass({
   }
 });
 
+function canMerge(path1, path2, tolerance = 1) {
+  const startPoint1 = path1[0];
+  const endPoint1 = path1[path1.length - 1];
+  const startPoint2 = path2[0];
+  const endPoint2 = path2[path2.length - 1];
+  let newPath,
+    isNearLine = false;
+  if (startPoint1[0] === endPoint2[0] && startPoint1[1] === endPoint2[1]) {
+    newPath = [...path2];
+    newPath.pop();
+    newPath.push(...path1);
+    isNearLine = isSameDirection(path2, path1, tolerance);
+  } else if (
+    startPoint2[0] === endPoint1[0] &&
+    startPoint2[1] === endPoint1[1]
+  ) {
+    newPath = [...path1];
+    newPath.pop();
+    newPath.push(...path2);
+    isNearLine = isSameDirection(path1, path2, tolerance);
+  }
+  return !newPath ? false : isNearLine ? newPath : false;
+}
+
+function isSameDirection(path1, path2, tolerance = 0.1) {
+  // 取路径相交点附近的一小段
+  const segment1 = [path1[path1.length - 2], path1[path1.length - 1]];
+  const segment2 = [path2[0], path2[1]];
+
+  // 计算一阶导数
+  const dy1 = segment1[1][1] - segment1[0][1];
+  const dx1 = segment1[1][0] - segment1[0][0];
+  const dy2 = segment2[1][1] - segment2[0][1];
+  const dx2 = segment2[1][0] - segment2[0][0];
+
+  // 判断差值是否在容差范围内
+  const diff = Math.abs(dy1 / dx1 - dy2 / dx2);
+
+  return diff <= tolerance;
+}
+
+FlowlineLayer.combinePath = function (paths, tolerance = 1) {
+  let mergedPaths = [...paths];
+
+  while (true) {
+    let merged = false;
+
+    for (let i = 0; i < mergedPaths.length; i++) {
+      const path = mergedPaths[i];
+
+      for (let j = i + 1; j < mergedPaths.length; j++) {
+        const nextPath = mergedPaths[j];
+        const newPath = canMerge(path, nextPath, tolerance);
+        if (newPath) {
+          mergedPaths.splice(i, 1);
+          mergedPaths.splice(j - 1, 1);
+
+          mergedPaths.push(newPath);
+
+          merged = true;
+          break;
+        }
+      }
+
+      if (merged) break;
+    }
+
+    if (!merged) break;
+  }
+
+  return mergedPaths;
+};
+
 export default FlowlineLayer;
