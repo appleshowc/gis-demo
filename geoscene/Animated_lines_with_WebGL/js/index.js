@@ -105,10 +105,9 @@ esriRequest(
   const layer = new FlowlineLayer({
     graphics: graphics,
     uniforms: {
-      u_tail_alpha: 0.4,
-      u_speed: 20.0,
-      u_length: 15.0,
-      u_cycle: 20.0,
+      u_speed: 1,
+      u_length: 15,
+      u_min_num: 1,
       u_width: 4
     }
   });

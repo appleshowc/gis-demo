@@ -10,7 +10,7 @@ const FlowlineLayerView2D = BaseLayerViewGL2D.createSubclass({
   aPosition: 0,
   aOffset: 1,
   aDistance: 2,
-  aSide: 3,
+  aTrailCount: 3,
   aColor: 4,
 
   constructor: function () {
@@ -63,19 +63,16 @@ const FlowlineLayerView2D = BaseLayerViewGL2D.createSubclass({
 
       attribute vec2 a_position;
       attribute vec2 a_offset;
-      attribute float a_distance;
-      attribute float a_side;
+      attribute float a_trail_count;
       attribute vec4 a_color;
 
-      varying float v_distance;
-      varying float v_side;
+      varying float v_trail_count;
       varying vec4 v_color;
 
       void main(void) {
         gl_Position.xy = (u_display * (u_transform * vec3(a_position, 1.0) + u_extrude * vec3(a_offset, 0.0))).xy;
         gl_Position.zw = vec2(0.0, 1.0);
-        v_distance = a_distance;
-        v_side = a_side;
+        v_trail_count = a_trail_count;
         v_color = a_color;
       }`;
 
@@ -83,19 +80,13 @@ const FlowlineLayerView2D = BaseLayerViewGL2D.createSubclass({
       precision highp float;
 
       uniform float u_current_time;
-      uniform float u_tail_alpha;
       uniform float u_trail_speed;
-      uniform float u_trail_length;
-      uniform float u_trail_cycle;
 
-      varying float v_distance;
-      varying float v_side;
+      varying float v_trail_count;
       varying vec4 v_color;
 
       void main(void) {
-        float d = mod(v_distance - u_current_time * u_trail_speed, u_trail_cycle);
-        float bg_a = min(u_tail_alpha, 0.5);
-        float a = d < u_trail_length ? mix(bg_a, 1.0, d / u_trail_length) : bg_a;
+        float a = fract(v_trail_count - u_current_time * u_trail_speed);
         gl_FragColor = v_color * a;
       }`;
 
@@ -115,7 +106,7 @@ const FlowlineLayerView2D = BaseLayerViewGL2D.createSubclass({
     gl.bindAttribLocation(this.program, this.aPosition, 'a_position');
     gl.bindAttribLocation(this.program, this.aOffset, 'a_offset');
     gl.bindAttribLocation(this.program, this.aDistance, 'a_distance');
-    gl.bindAttribLocation(this.program, this.aSide, 'a_side');
+    gl.bindAttribLocation(this.program, this.aTrailCount, 'a_trail_count');
     gl.bindAttribLocation(this.program, this.aColor, 'a_color');
 
     // Link.
@@ -130,10 +121,8 @@ const FlowlineLayerView2D = BaseLayerViewGL2D.createSubclass({
     this.uExtrude = gl.getUniformLocation(this.program, 'u_extrude');
     this.uDisplay = gl.getUniformLocation(this.program, 'u_display');
     this.uCurrentTime = gl.getUniformLocation(this.program, 'u_current_time');
-    this.uTailAlpha = gl.getUniformLocation(this.program, 'u_tail_alpha');
     this.uTrailSpeed = gl.getUniformLocation(this.program, 'u_trail_speed');
     this.uTrailLength = gl.getUniformLocation(this.program, 'u_trail_length');
-    this.uTrailCycle = gl.getUniformLocation(this.program, 'u_trail_cycle');
 
     // Create the vertex and index buffer. They are initially empty. We need to track the
     // size of the index buffer because we use indexed drawing.
@@ -155,24 +144,25 @@ const FlowlineLayerView2D = BaseLayerViewGL2D.createSubclass({
       this.deleteVertexArray = (vao) => vaoExt.deleteVertexArrayOES(vao);
     }
 
-    // Set up vertex attributes
-    // | Position | Offset   | Distance | Side   | Color  |
-    // |----------|----------|----------|--------|--------|
-    // | x,y      | x,y      | d        | +/-    | rgba   |
-    // | 2        | 2        | 1        | 1      | 4      |
-    // | 2*4bytes | 2*4bytes | 4bytes   | 4bytes | 4bytes |
+    /* Set up vertex attributes
+     * | Position | Offset   | Distance | Trail Count | Color  |
+     * |----------|----------|----------|-------------|--------|
+     * | x,y      | x,y      | d        | n           | rgba   |
+     * | 2        | 2        | 1        | 1           | 4      |
+     * | 2*4bytes | 2*4bytes | 4bytes   | 4bytes      | 4bytes |
+    */
     this.bindVertexArray(this.vao);
     gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
     gl.enableVertexAttribArray(this.aPosition);
     gl.enableVertexAttribArray(this.aOffset);
     gl.enableVertexAttribArray(this.aDistance);
-    gl.enableVertexAttribArray(this.aSide);
+    gl.enableVertexAttribArray(this.aTrailCount);
     gl.enableVertexAttribArray(this.aColor);
     gl.vertexAttribPointer(this.aPosition, 2, gl.FLOAT, false, 28, 0);
     gl.vertexAttribPointer(this.aOffset, 2, gl.FLOAT, false, 28, 8);
     gl.vertexAttribPointer(this.aDistance, 1, gl.FLOAT, false, 28, 16);
-    gl.vertexAttribPointer(this.aSide, 1, gl.FLOAT, false, 28, 20);
+    gl.vertexAttribPointer(this.aTrailCount, 1, gl.FLOAT, false, 28, 20);
     gl.vertexAttribPointer(this.aColor, 4, gl.UNSIGNED_BYTE, true, 28, 24);
     this.bindVertexArray(null);
 
@@ -257,10 +247,8 @@ const FlowlineLayerView2D = BaseLayerViewGL2D.createSubclass({
     gl.uniformMatrix3fv(this.uExtrude, false, this.extrude);
     gl.uniformMatrix3fv(this.uDisplay, false, this.display);
     gl.uniform1f(this.uCurrentTime, performance.now() / 1000.0);
-    gl.uniform1f(this.uTailAlpha, this.uniforms.u_tail_alpha);
     gl.uniform1f(this.uTrailSpeed, this.uniforms.u_trail_speed);
     gl.uniform1f(this.uTrailLength, this.uniforms.u_trail_length);
-    gl.uniform1f(this.uTrailCycle, this.uniforms.u_trail_cycle);
     this.bindVertexArray(this.vao);
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
@@ -322,8 +310,9 @@ const FlowlineLayerView2D = BaseLayerViewGL2D.createSubclass({
     // Allocate memory.
     let vtxCount = 0;
     let idxCount = 0;
+    let len = graphics.items.length;
 
-    for (let i = 0; i < graphics.items.length; ++i) {
+    for (let i = 0; i < len; ++i) {
       const graphic = graphics.items[i];
       const path = graphic.geometry.paths[0];
 
@@ -342,7 +331,10 @@ const FlowlineLayerView2D = BaseLayerViewGL2D.createSubclass({
     let vtxCursor = 0;
     let idxCursor = 0;
 
-    for (let i = 0; i < graphics.items.length; ++i) {
+    const trailMinNum = this.uniforms.u_trail_min_num;
+    const trailLen = this.uniforms.u_trail_length;
+
+    for (let i = 0; i < len; ++i) {
       const graphic = graphics.items[i];
       const path = graphic.geometry.paths[0];
       let color = graphic.attributes['color'];
@@ -354,7 +346,8 @@ const FlowlineLayerView2D = BaseLayerViewGL2D.createSubclass({
       let s = {};
 
       // Process each vertex.
-      for (let j = 0; j < path.length; ++j) {
+      let len2 = path.length;
+      for (let j = 0; j < len2; ++j) {
         // Point p is an original vertex of the polyline; we need to produce two extruded
         // GPU vertices, for each original vertex.
         const p = path[j];
@@ -407,14 +400,14 @@ const FlowlineLayerView2D = BaseLayerViewGL2D.createSubclass({
           floatData[vtxCursor * 7 + 2] = s.offset[0];
           floatData[vtxCursor * 7 + 3] = s.offset[1];
           floatData[vtxCursor * 7 + 4] = s.distance;
-          floatData[vtxCursor * 7 + 5] = +1;
+          floatData[vtxCursor * 7 + 5] = s.distance / trailLen;
           colorData[4 * (vtxCursor * 7 + 6) + 0] = color[0];
           colorData[4 * (vtxCursor * 7 + 6) + 1] = color[1];
           colorData[4 * (vtxCursor * 7 + 6) + 2] = color[2];
           colorData[4 * (vtxCursor * 7 + 6) + 3] = 255;
 
           // We also write the same values to the second vertex, but we negate the
-          // offset and the side (these are the attributes at positions +9, +10 and +12).
+          // offset and the trail count (these are the attributes at positions +9, +10 and +12).
           floatData[vtxCursor * 7 + 7] =
             s.current[0] - this.centerAtLastUpdate[0];
           floatData[vtxCursor * 7 + 8] =
@@ -422,7 +415,7 @@ const FlowlineLayerView2D = BaseLayerViewGL2D.createSubclass({
           floatData[vtxCursor * 7 + 9] = -s.offset[0];
           floatData[vtxCursor * 7 + 10] = -s.offset[1];
           floatData[vtxCursor * 7 + 11] = s.distance;
-          floatData[vtxCursor * 7 + 12] = -1;
+          floatData[vtxCursor * 7 + 12] = s.distance / trailLen;
           colorData[4 * (vtxCursor * 7 + 13) + 0] = color[0];
           colorData[4 * (vtxCursor * 7 + 13) + 1] = color[1];
           colorData[4 * (vtxCursor * 7 + 13) + 2] = color[2];
@@ -462,7 +455,7 @@ const FlowlineLayerView2D = BaseLayerViewGL2D.createSubclass({
       floatData[vtxCursor * 7 + 2] = s.offset[0];
       floatData[vtxCursor * 7 + 3] = s.offset[1];
       floatData[vtxCursor * 7 + 4] = s.distance;
-      floatData[vtxCursor * 7 + 5] = +1;
+      floatData[vtxCursor * 7 + 5] = s.distance / trailLen;
       colorData[4 * (vtxCursor * 7 + 6) + 0] = color[0];
       colorData[4 * (vtxCursor * 7 + 6) + 1] = color[1];
       colorData[4 * (vtxCursor * 7 + 6) + 2] = color[2];
@@ -472,11 +465,26 @@ const FlowlineLayerView2D = BaseLayerViewGL2D.createSubclass({
       floatData[vtxCursor * 7 + 9] = -s.offset[0];
       floatData[vtxCursor * 7 + 10] = -s.offset[1];
       floatData[vtxCursor * 7 + 11] = s.distance;
-      floatData[vtxCursor * 7 + 12] = -1;
+      floatData[vtxCursor * 7 + 12] = s.distance / trailLen;
       colorData[4 * (vtxCursor * 7 + 13) + 0] = color[0];
       colorData[4 * (vtxCursor * 7 + 13) + 1] = color[1];
       colorData[4 * (vtxCursor * 7 + 13) + 2] = color[2];
       colorData[4 * (vtxCursor * 7 + 13) + 3] = 255;
+
+      // Each line has at least "trailMinNum" trail(s) when trail length bigger
+      // than line length
+      if (trailLen >= s.distance) {
+        let cursor = vtxCursor - (len2 - 1) * 2;
+        const sumD = floatData[vtxCursor * 7 + 4];
+        for (let j = 0; j < len2; ++j) {
+          const d = floatData[cursor * 7 + 4];
+          const num = (d / sumD) * trailMinNum;
+          floatData[cursor * 7 + 5] = num;
+          floatData[cursor * 7 + 12] = num;
+          cursor += 2;
+        }
+      }
+
       vtxCursor += 2;
 
       indexData[idxCursor + 0] = vtxCursor - 4;
@@ -511,11 +519,10 @@ const FlowlineLayer = GraphicsLayer.createSubclass({
         view: view,
         layer: this,
         uniforms: {
-          u_tail_alpha: this.uniforms?.u_tail_alpha ?? 0.5, //! 尾巴透明度
-          u_trail_width: this.uniforms?.u_width ?? 6, //! 流向线缓冲半径
-          u_trail_speed: this.uniforms?.u_speed ?? 20.0, //! 流速
-          u_trail_length: this.uniforms?.u_length ?? 10.0, //! 流光长度
-          u_trail_cycle: this.uniforms?.u_cycle ?? 20.0 //! 循环时间
+          u_trail_width: this.uniforms?.u_width ?? 6, //! 流向线宽度
+          u_trail_speed: this.uniforms?.u_speed ?? 1, //! 流动倍速
+          u_trail_length: this.uniforms?.u_length ?? 10, //! 流光长度
+          u_trail_min_num: this.uniforms?.u_min_num ?? 1 //! 流光最小个数
         }
       });
     }
@@ -563,6 +570,12 @@ function isSameDirection(path1, path2, tolerance = 0.1) {
   return diff <= tolerance;
 }
 
+/**
+ * 线合并
+ * @param {[number, number][][]} paths 路径坐标组合
+ * @param {number} tolerance 容差，用于判断相邻两段路径在重合点附近近似直线，默认值为 1
+ * @returns {[number, number][][]} 合并之后的路径
+ */
 FlowlineLayer.combinePath = function (paths, tolerance = 1) {
   let mergedPaths = [...paths];
 

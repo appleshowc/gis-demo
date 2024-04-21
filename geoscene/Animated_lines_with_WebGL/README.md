@@ -12,15 +12,16 @@
 
 加入了坐标系自动更新机制。传入的 `geometry` 附上坐标对应的坐标系即可，无需另外转换。在地图切换坐标系时，也能自动更新几何坐标。
 
-### 流向效果参数
+### 流向效果
 
-移除流向线两侧半透明效果，增加了 `uniforms` 参数，用于控制流向效果。
+1. 移除流向线两侧半透明效果
+2. 增加了静态方法 `FlowlineLayer.combinePath(paths, tolerance = 1)`，可合并路径中端点重合且近似直线的线段
+3. 增加了 `uniforms` 参数，用于控制流向效果。
 
-- u_tail_alpha: 尾巴透明度
-- u_trail_width: 流向线缓冲半径
-- u_trail_speed: 流速
-- u_trail_length:  流光长度
-- u_trail_cycle: 循环时间
+   - u_width: 流向线宽度
+   - u_speed: 流动倍速
+   - u_length:  流光长度
+   - u_min_num: 流光最小个数
 
 ### 首次渲染
 
@@ -32,13 +33,13 @@
 
 ``` js
  // 1. 创建 graphics
-  const graphics = paths.map((item: any) => {
+  const graphics = FlowlineLayer.combinePath(paths).map((item: any) => {
     return {
       attributes: {
         color: [24, 144, 255], // 路径颜色，接受rgb数组或hex字符串
       },
       geometry: {
-        paths: [paths],
+        paths: [item],
         type: 'polyline',
         spatialReference: {
           wkid: 4326,
@@ -50,10 +51,9 @@
   const flowlineLayer = new FlowlineLayer({
     graphics,
     uniforms: {
-      u_tail_alpha: 0.2, // 流向尾巴透明度
-      u_speed: 20.0, // 流向速度
-      u_length: 10.0, // 流向长度
-      u_cycle: 20.0, // 流向周期
+      u_speed: 1, // 流动倍速
+      u_length: 10, // 流向长度
+      u_min_num: 1, // 流光最小个数
       u_width: 4, // 流向宽度
     },
   });
