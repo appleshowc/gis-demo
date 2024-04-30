@@ -558,14 +558,22 @@ function isSameDirection(path1, path2, tolerance = 0.1) {
   const segment1 = [path1[path1.length - 2], path1[path1.length - 1]];
   const segment2 = [path2[0], path2[1]];
 
-  // 计算一阶导数
-  const dy1 = segment1[1][1] - segment1[0][1];
-  const dx1 = segment1[1][0] - segment1[0][0];
-  const dy2 = segment2[1][1] - segment2[0][1];
-  const dx2 = segment2[1][0] - segment2[0][0];
+  // 计算线段向量
+  const vec1 = [segment1[1][0] - segment1[0][0], segment1[1][1] - segment1[0][1]];
+  const vec2 = [-segment2[1][0] + segment2[0][0], -segment2[1][1] + segment2[0][1]];
 
-  // 判断差值是否在容差范围内
-  const diff = Math.abs(dy1 / dx1 - dy2 / dx2);
+  // 计算向量点积
+  const dotProduct = vec1[0] * vec2[0] + vec1[1] * vec2[1];
+
+  // 计算向量模长
+  const len1 = Math.sqrt(vec1[0] * vec1[0] + vec1[1] * vec1[1]);
+  const len2 = Math.sqrt(vec2[0] * vec2[0] + vec2[1] * vec2[1]);
+
+  // 计算夹角的余弦值
+  const cosAngle = dotProduct / (len1 * len2);
+
+  // 判断夹角是否接近180度
+  const diff = Math.abs(cosAngle + 1);
 
   return diff <= tolerance;
 }
